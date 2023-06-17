@@ -121,14 +121,14 @@ fn collect_metrics(sock: TcpStream, metrics: Arc<P1Metrics>) -> Result<(), io::E
             metrics.power_produced.set(pd);
         }
 
-        if let Some(pd) = state.meterreadings[0].by {
+        if let Some(pd) = state.meterreadings[0].to {
             metrics
                 .power_consumed_total
                 .get_or_create(&[("tariff", "low")])
                 .inner()
                 .store(pd.to_bits(), Ordering::SeqCst);
         }
-        if let Some(pd) = state.meterreadings[1].by {
+        if let Some(pd) = state.meterreadings[1].to {
             metrics
                 .power_consumed_total
                 .get_or_create(&[("tariff", "high")])
@@ -136,14 +136,14 @@ fn collect_metrics(sock: TcpStream, metrics: Arc<P1Metrics>) -> Result<(), io::E
                 .store(pd.to_bits(), Ordering::SeqCst);
         }
 
-        if let Some(pd) = state.meterreadings[0].to {
+        if let Some(pd) = state.meterreadings[0].by {
             metrics
                 .power_produced_total
                 .get_or_create(&[("tariff", "low")])
                 .inner()
                 .store(pd.to_bits(), Ordering::SeqCst);
         }
-        if let Some(pd) = state.meterreadings[1].to {
+        if let Some(pd) = state.meterreadings[1].by {
             metrics
                 .power_produced_total
                 .get_or_create(&[("tariff", "high")])
