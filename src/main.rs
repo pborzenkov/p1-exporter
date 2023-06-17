@@ -33,11 +33,11 @@ struct Args {
 
 #[derive(Default)]
 struct P1Metrics {
-    power_consumed: Gauge,
-    power_produced: Gauge,
+    power_consumed: Gauge<f64, AtomicU64>,
+    power_produced: Gauge<f64, AtomicU64>,
 
-    power_consumed_total: Family<[(&'static str, &'static str); 1], Counter>,
-    power_produced_total: Family<[(&'static str, &'static str); 1], Counter>,
+    power_consumed_total: Family<[(&'static str, &'static str); 1], Counter<f64, AtomicU64>>,
+    power_produced_total: Family<[(&'static str, &'static str); 1], Counter<f64, AtomicU64>>,
 
     active_tariff: Family<[(&'static str, &'static str); 1], Gauge>,
 
@@ -51,22 +51,22 @@ fn main() {
     let metrics = <P1Metrics>::default();
 
     registry.register(
-        "p1_power_consumed_watts",
+        "p1_power_consumed_kw",
         "Power consumed",
         metrics.power_consumed.clone(),
     );
     registry.register(
-        "p1_power_produced_watts",
+        "p1_power_produced_kw",
         "Power produced",
         metrics.power_produced.clone(),
     );
     registry.register(
-        "p1_power_consumed_watts_total",
+        "p1_power_consumed_kwh",
         "Total consumed power",
         metrics.power_consumed_total.clone(),
     );
     registry.register(
-        "p1_power_produced_watts_total",
+        "p1_power_produced_kwh",
         "Total produced power",
         metrics.power_produced_total.clone(),
     );
@@ -76,7 +76,7 @@ fn main() {
         metrics.active_tariff.clone(),
     );
     registry.register(
-        "p1_gas_consumed_cubic_meters_total",
+        "p1_gas_consumed_cubic_meters",
         "Total consumed natural gas",
         metrics.gas_consumed_total.clone(),
     );
@@ -115,10 +115,10 @@ fn collect_metrics(sock: TcpStream, metrics: Arc<P1Metrics>) -> Result<(), io::E
             .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("{:?}", e)))?;
 
         if let Some(pd) = state.power_delivered {
-            metrics.power_consumed.set((pd * 1000.) as i64);
+            metrics.power_consumed.set(pd);
         }
         if let Some(pd) = state.power_received {
-            metrics.power_produced.set((pd * 1000.) as i64);
+            metrics.power_produced.set(pd);
         }
 
         if let Some(pd) = state.meterreadings[0].by {
@@ -126,14 +126,14 @@ fn collect_metrics(sock: TcpStream, metrics: Arc<P1Metrics>) -> Result<(), io::E
                 .power_consumed_total
                 .get_or_create(&[("tariff", "low")])
                 .inner()
-                .store((pd * 1000.) as u64, Ordering::SeqCst);
+                .store(pd.to_bits(), Ordering::SeqCst);
         }
         if let Some(pd) = state.meterreadings[1].by {
             metrics
                 .power_consumed_total
                 .get_or_create(&[("tariff", "high")])
                 .inner()
-                .store((pd * 1000.) as u64, Ordering::SeqCst);
+                .store(pd.to_bits(), Ordering::SeqCst);
         }
 
         if let Some(pd) = state.meterreadings[0].to {
@@ -141,14 +141,14 @@ fn collect_metrics(sock: TcpStream, metrics: Arc<P1Metrics>) -> Result<(), io::E
                 .power_produced_total
                 .get_or_create(&[("tariff", "low")])
                 .inner()
-                .store((pd * 1000.) as u64, Ordering::SeqCst);
+                .store(pd.to_bits(), Ordering::SeqCst);
         }
         if let Some(pd) = state.meterreadings[1].to {
             metrics
                 .power_produced_total
                 .get_or_create(&[("tariff", "high")])
                 .inner()
-                .store((pd * 1000.) as u64, Ordering::SeqCst);
+                .store(pd.to_bits(), Ordering::SeqCst);
         }
 
         metrics.active_tariff.clear();
