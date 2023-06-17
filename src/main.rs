@@ -39,6 +39,8 @@ struct P1Metrics {
     power_consumed_total: Family<[(&'static str, &'static str); 1], Counter>,
     power_produced_total: Family<[(&'static str, &'static str); 1], Counter>,
 
+    active_tariff: Family<[(&'static str, &'static str); 1], Gauge>,
+
     gas_consumed_total: Counter<f64, AtomicU64>,
 }
 
@@ -67,6 +69,11 @@ fn main() {
         "p1_power_produced_watts_total",
         "Total produced power",
         metrics.power_produced_total.clone(),
+    );
+    registry.register(
+        "p1_active_tariff",
+        "Currently active tariff",
+        metrics.active_tariff.clone(),
     );
     registry.register(
         "p1_gas_consumed_cubic_meters_total",
@@ -144,16 +151,29 @@ fn collect_metrics(sock: TcpStream, metrics: Arc<P1Metrics>) -> Result<(), io::E
                 .store((pd * 1000.) as u64, Ordering::SeqCst);
         }
 
+        metrics.active_tariff.clear();
+        match state.tariff_indicator {
+            Some([0, 1]) => metrics
+                .active_tariff
+                .get_or_create(&[("tariff", "low")])
+                .set(1),
+            Some([0, 2]) => metrics
+                .active_tariff
+                .get_or_create(&[("tariff", "low")])
+                .set(1),
+            _ => 0,
+        };
+
         for sl in state.slaves {
-            match sl {
-                Slave {
-                    device_type: Some(3),
-                    meter_reading: Some((_, gd)),
-                } => metrics
+            if let Slave {
+                device_type: Some(3),
+                meter_reading: Some((_, gd)),
+            } = sl
+            {
+                metrics
                     .gas_consumed_total
                     .inner()
-                    .store(gd.to_bits(), Ordering::SeqCst),
-                _ => (),
+                    .store(gd.to_bits(), Ordering::SeqCst);
             }
         }
     }

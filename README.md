@@ -14,6 +14,8 @@ The following metrics are currently exported:
 # TYPE p1_power_consumed_watts_total counter
 # HELP p1_power_produced_watts_total Total produced power.
 # TYPE p1_power_produced_watts_total counter
+# HELP p1_active_tariff Currently active tariff.
+# TYPE p1_active_tariff gauge
 # HELP p1_gas_consumed_cubic_meters_total Total consumed natural gas.
 # TYPE p1_gas_consumed_cubic_meters_total counter
 ```
