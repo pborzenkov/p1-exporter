@@ -159,7 +159,7 @@ fn collect_metrics(sock: TcpStream, metrics: Arc<P1Metrics>) -> Result<(), io::E
                 .set(1),
             Some([0, 2]) => metrics
                 .active_tariff
-                .get_or_create(&[("tariff", "low")])
+                .get_or_create(&[("tariff", "high")])
                 .set(1),
             _ => 0,
         };
